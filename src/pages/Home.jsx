@@ -11,6 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null); // 'cash' or 'qr'
 
   const [currentOrderId, setCurrentOrderId] = useState(null);
 
@@ -34,6 +35,7 @@ export default function Home() {
       setCart([]);
       setShowPayment(false);
       setIsConfirmed(false);
+      setPaymentMethod(null);
       setCurrentOrderId(null);
       fetchProducts();
       window.location.href = `/orders?print=${orderId}`;
@@ -93,7 +95,7 @@ export default function Home() {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
-  const handleCheckoutClick = async () => {
+  const handleCheckoutClick = async (method) => {
     if (cart.length === 0) {
       alert("กรุณาเลือกสินค้าก่อนชำระเงิน");
       return;
@@ -119,7 +121,7 @@ export default function Home() {
       const res = await axios.post(`${API_BASE}/orders`, {
         user_id: Number(userId),
         address_id: 1, 
-        payment_method: "promptpay",
+        payment_method: method || "cash",
         items: cart.map(item => ({
           product_id: item.id,
           quantity: item.qty
@@ -129,6 +131,7 @@ export default function Home() {
       });
       
       setCurrentOrderId(res.data.id);
+      setPaymentMethod(method);
       setShowPayment(true);
     } catch (err) {
       console.error("Order Creation Failed:", err.response?.data);
@@ -157,53 +160,61 @@ export default function Home() {
       {showPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white rounded-none shadow-2xl max-w-sm w-full overflow-hidden border border-[#1a1a1a]">
-            <div className="bg-[#1a1a1a] p-8 text-white text-center border-b border-black">
-              <img src={logo} alt="Logo" className="w-12 h-12 mx-auto mb-4 rounded-full bg-white p-1" />
-              <h3 className="text-2xl font-serif italic">The Bottle Club</h3>
-              <p className="text-xs tracking-[0.2em] uppercase mt-2 text-gray-400">Secure Payment Terminal</p>
+            <div className="bg-[#1a1a1a] p-4 text-white text-center border-b border-black">
+              <img src={logo} alt="Logo" className="w-10 h-10 mx-auto mb-2 rounded-full bg-white p-1" />
+              <h3 className="text-xl font-serif italic">The Bottle Club</h3>
+              <p className="text-[8px] tracking-[0.2em] uppercase mt-1 text-gray-400">Secure Payment Terminal</p>
             </div>
             
-            <div className="p-10 flex flex-col items-center gap-8 min-h-[400px] justify-center">
+            <div className="p-6 flex flex-col items-center gap-4 min-h-[350px] justify-center">
               {isConfirmed ? (
                 <div className="text-center animate-bounce">
-                  <span className="text-6xl block mb-4">🥂</span>
-                  <h2 className="text-4xl font-serif italic text-[#1a1a1a]">Thank You</h2>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 mt-4 font-bold">Your order is being processed</p>
+                  <span className="text-5xl block mb-2">🥂</span>
+                  <h2 className="text-3xl font-serif italic text-[#1a1a1a]">Thank You</h2>
+                  <p className="text-[9px] uppercase tracking-[0.3em] text-gray-400 mt-2 font-bold">Your order is being processed</p>
                 </div>
               ) : (
                 <>
                   <div className="text-center">
-                    <p className="text-gray-400 text-[10px] uppercase tracking-[0.3em] mb-2 font-bold">Total Amount</p>
-                    <p className="text-5xl font-serif text-[#1a1a1a]">{total.toLocaleString()} <span className="text-lg">฿</span></p>
+                    <p className="text-gray-400 text-[9px] uppercase tracking-[0.3em] mb-1 font-bold">Total Amount</p>
+                    <p className="text-4xl font-serif text-[#1a1a1a]">{total.toLocaleString()} <span className="text-lg">฿</span></p>
+                    <p className="text-[8px] uppercase tracking-widest text-black font-bold mt-1">Method: {paymentMethod === 'qr' ? 'PromptPay Scan' : 'Cash Payment'}</p>
                   </div>
 
-                  <div className="bg-white p-6 border border-gray-100 shadow-sm">
-                    <img 
-                      src={`/api/generate-qr?amount=${total}&phone=0970987745`} 
-                      alt="Payment QR Code"
-                      className="w-52 h-52 object-contain"
-                    />
-                  </div>
+                  {paymentMethod === 'qr' ? (
+                    <div className="bg-white p-3 border border-gray-100 shadow-sm">
+                      <img 
+                        src={`${API_BASE}/generate-qr?amount=${total}&phone=0970987745`} 
+                        alt="Payment QR Code"
+                        className="w-40 h-40 object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center py-8 opacity-40">
+                      <span className="text-6xl mb-2">💵</span>
+                      <p className="text-[10px] uppercase tracking-widest font-bold">Collecting Cash</p>
+                    </div>
+                  )}
 
                   <div className="text-center animate-pulse">
-                    <p className="text-black text-[10px] uppercase tracking-[0.2em] font-bold">
+                    <p className="text-black text-[9px] uppercase tracking-[0.2em] font-bold">
                       Awaiting Confirmation...
                     </p>
                   </div>
 
-                  <div className="w-full space-y-4">
+                  <div className="w-full space-y-2">
                     <button
                       onClick={finalizeOrderManual}
                       disabled={loading}
-                      className="w-full py-5 bg-[#1a1a1a] text-white text-sm uppercase tracking-[0.2em] font-bold hover:bg-black transition-all"
+                      className="w-full py-4 bg-[#1a1a1a] text-white text-[11px] uppercase tracking-[0.3em] font-black hover:bg-black transition-all"
                     >
-                      {loading ? "Processing..." : "Complete Transaction"}
+                      {loading ? "Processing..." : paymentMethod === 'qr' ? "Confirm QR Received" : "Confirm Cash Received"}
                     </button>
                     <button
-                      onClick={() => setShowPayment(false)}
-                      className="w-full text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-black transition-colors"
+                      onClick={() => { setShowPayment(false); setPaymentMethod(null); }}
+                      className="w-full text-[9px] uppercase tracking-[0.2em] text-gray-400 hover:text-black transition-colors py-2"
                     >
-                      Cancel
+                      Cancel Transaction
                     </button>
                   </div>
                 </>
@@ -338,17 +349,30 @@ export default function Home() {
             </div>
           </div>
 
-          <button
-            className={`w-full py-6 text-sm uppercase tracking-[0.4em] font-black transition-all ${
-              cart.length > 0 
-                ? 'bg-white text-black hover:bg-gray-200' 
-                : 'bg-white/5 text-white/20 cursor-not-allowed'
-            }`}
-            onClick={handleCheckoutClick}
-            disabled={cart.length === 0}
-          >
-            Check Out
-          </button>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              className={`py-4 text-[10px] uppercase tracking-[0.3em] font-black transition-all ${
+                cart.length > 0 
+                  ? 'bg-white text-black hover:bg-gray-200' 
+                  : 'bg-white/5 text-white/20 cursor-not-allowed'
+              }`}
+              onClick={() => handleCheckoutClick("cash")}
+              disabled={cart.length === 0}
+            >
+              Cash Payment
+            </button>
+            <button
+              className={`py-4 text-[10px] uppercase tracking-[0.3em] font-black transition-all ${
+                cart.length > 0 
+                  ? 'bg-black text-white border border-white/20 hover:bg-gray-900' 
+                  : 'bg-white/5 text-white/20 cursor-not-allowed'
+              }`}
+              onClick={() => handleCheckoutClick("qr")}
+              disabled={cart.length === 0}
+            >
+              QR Scan
+            </button>
+          </div>
         </div>
       </div>
     </div>
