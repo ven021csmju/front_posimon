@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+:root {
+  --wine-red: #8b0000;
+  --wine-red-hover: #6a0000;
+  --premium-black: #1a1a1a;
+  --premium-gray: #f8f8f8;
+  --border-gray: #e5e5e5;
+  --text-main: #2d2d2d;
+  --text-muted: #666666;
+  --bg-white: #ffffff;
+  
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --serif: 'Playfair Display', serif;
+
+  font: 16px/1.6 var(--sans);
+  color: var(--text-main);
+  background: var(--bg-white);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background-color: var(--premium-gray);
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--serif);
+  color: var(--premium-black);
+  font-weight: 700;
+}
+
+/* Elegant Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--premium-gray);
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.premium-card {
+  background: white;
+  border: 1px solid var(--border-gray);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.premium-card:hover {
+  border-color: var(--wine-red);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.btn-premium {
+  background-color: var(--premium-black);
+  color: white;
+  transition: all 0.2s;
+}
+.btn-premium:hover {
+  background-color: var(--wine-red);
+}
+
+.btn-outline {
+  border: 1px solid var(--premium-black);
+  color: var(--premium-black);
+}
+.btn-outline:hover {
+  background-color: var(--premium-black);
+  color: white;
+}
+
