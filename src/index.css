@@ -1,84 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --wine-red: #8b0000;
-  --wine-red-hover: #6a0000;
-  --premium-black: #1a1a1a;
-  --premium-gray: #f8f8f8;
-  --border-gray: #e5e5e5;
-  --text-main: #2d2d2d;
-  --text-muted: #666666;
-  --bg-white: #ffffff;
+  --wine-red: #4A0E0E;
+  --wine-red-light: #722F37;
+  --gold: #D4AF37;
+  --gold-muted: #C5A028;
+  --deep-black: #050505;
+  --rich-black: #0A0A0A;
+  --ui-gray: #141414;
+  --ui-gray-hover: #1C1C1C;
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-active: rgba(212, 175, 55, 0.3);
   
-  --sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --serif: 'Playfair Display', serif;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --serif: 'Cinzel', serif;
 
-  font: 16px/1.6 var(--sans);
-  color: var(--text-main);
-  background: var(--bg-white);
+  font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
-  background-color: var(--premium-gray);
+  background-color: var(--deep-black);
+  color: #FFFFFF;
 }
 
-#root {
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-h1, h2, h3, h4 {
+h1, h2, h3, h4, .font-luxury {
   font-family: var(--serif);
-  color: var(--premium-black);
-  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
 /* Elegant Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--premium-gray);
+  background: var(--deep-black);
 }
 ::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: rgba(212, 175, 55, 0.2);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: rgba(212, 175, 55, 0.4);
 }
 
-.premium-card {
-  background: white;
-  border: 1px solid var(--border-gray);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.premium-card:hover {
-  border-color: var(--wine-red);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+.premium-blur {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.btn-premium {
-  background-color: var(--premium-black);
-  color: white;
-  transition: all 0.2s;
-}
-.btn-premium:hover {
-  background-color: var(--wine-red);
+.luxury-gradient-gold {
+  background: linear-gradient(135deg, #D4AF37 0%, #C5A028 100%);
 }
 
-.btn-outline {
-  border: 1px solid var(--premium-black);
-  color: var(--premium-black);
-}
-.btn-outline:hover {
-  background-color: var(--premium-black);
-  color: white;
+.luxury-gradient-wine {
+  background: linear-gradient(135deg, #4A0E0E 0%, #2A0505 100%);
 }
 
+.subtle-shadow {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.transition-premium {
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}

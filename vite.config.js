@@ -9,17 +9,20 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    port: 3000,
     proxy: {
       '/api': {
         target: 'https://possimon.onrender.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/ws': {
-        target: 'wss://possimon.onrender.com',
-        ws: true,
-        changeOrigin: true,
-        secure: false,
+        ws: false,
+        secure: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            if (err.code !== 'ECONNRESET' && err.code !== 'ECONNABORTED') {
+              console.error('proxy error', err);
+            }
+          });
+        },
       },
     },
   },
