@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Use the full URL for both dev and prod to ensure cookies are sent correctly across domains
-const baseURL = 'https://possimon.onrender.com/api';
-export const ABSOLUTE_API_URL = 'https://possimon.onrender.com/api';
+// Use relative paths to leverage Vercel/Vite proxying and avoid CORS issues in production.
+const baseURL = '/api';
+export const ABSOLUTE_API_URL = '/api';
 
 const api = axios.create({
   baseURL: baseURL,

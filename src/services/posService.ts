@@ -26,8 +26,7 @@ export const orderService = {
 
 export const paymentService = {
   generateQR: (amount: number, phone: string) => {
-    const baseURL = import.meta.env.DEV ? '/api' : 'https://possimon.onrender.com/api';
-    return `${baseURL}/payments/generate-qr?amount=${amount}&phone=${phone}`;
+    return `/api/payments/generate-qr?amount=${amount}&phone=${phone}`;
   },
   getQRBlob: async (amount: number, phone: string) => {
     const response = await api.get(`/payments/generate-qr?amount=${amount}&phone=${phone}`, {
