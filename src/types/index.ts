@@ -10,6 +10,12 @@ export interface User {
   role: Role;
 }
 
+export interface ProductImage {
+  id: number;
+  image_url: string;
+  created_at: string;
+}
+
 export interface Product {
   id?: number;
   sku: string | null;
@@ -19,6 +25,7 @@ export interface Product {
   selling_price: number;
   stock: number;
   image_url?: string;
+  images?: ProductImage[];
 }
 
 export interface CartItem extends Product {

@@ -5,6 +5,10 @@
       "destination": "https://possimon.onrender.com/api/:path*"
     },
     {
+      "source": "/static/:path*",
+      "destination": "https://possimon.onrender.com/static/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -11,6 +11,24 @@ export const productService = {
     const response = await api.get<Product[]>(`/products/search?q=${query}`);
     return response.data;
   },
+  uploadProductImage: async (productId: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/products/${productId}/images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  deleteProductImage: async (imageId: number) => {
+    const response = await api.delete(`/products/images/${imageId}`);
+    return response.data;
+  },
+  refillStock: async (productId: number, quantity: number) => {
+    const response = await api.post(`/products/${productId}/refill`, { quantity });
+    return response.data;
+  },
 };
 
 export const orderService = {

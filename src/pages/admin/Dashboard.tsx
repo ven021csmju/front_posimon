@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowUpRight, Boxes, PackageSearch, RefreshCw, ShoppingBag, TrendingUp, Users } from 'lucide-react';
 import api from '../../services/api';
+import { productService } from '../../services/posService';
 import { Product, User } from '../../types';
 import AppShell from '../../components/layout/AppShell';
 import Button from '../../components/ui/Button';
@@ -23,6 +24,21 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  const handleRefill = async (productId: number) => {
+    const amount = prompt("Enter quantity to add:");
+    if (!amount || isNaN(Number(amount))) return;
+
+    setLoading(true);
+    try {
+      await productService.refillStock(productId, Number(amount));
+      await fetchDashboardData();
+    } catch (error) {
+      console.error("Refill failed", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -228,7 +244,7 @@ const AdminDashboard: React.FC = () => {
                     <p className="font-black text-white">{product.name}</p>
                     <p className="text-sm font-semibold text-rose-200">{product.stock} units remaining</p>
                   </div>
-                  <Button variant="secondary" size="sm">Restock</Button>
+                  <Button variant="secondary" size="sm" onClick={() => product.id && handleRefill(product.id)}>Restock</Button>
                 </div>
               )) : (
                 <div className="flex flex-col items-center justify-center py-16 text-zinc-500">

@@ -24,6 +24,11 @@ export default defineConfig({
           });
         },
       },
+      '/static': {
+        target: 'https://possimon.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
 })

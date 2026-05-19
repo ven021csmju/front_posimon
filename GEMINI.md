@@ -49,16 +49,17 @@
 ### 1. Authentication (`/api/auth`)
 หัวใจสำคัญคือการจัดการ Token และ Social Login
 
-- **POST `/api/auth/login`**
+- **POST `/api/auth/login/pos`** (สำหรับ POS)
     - **Payload:** `{ "username": "...", "password": "..." }`
-    - **Response:** `{ "access_token": "..." }`
-    - ⚠️ **ข้อควรระวัง:** Token ไม่มีวันหมดอายุในโค้ดปัจจุบัน (ควรเก็บใน `localStorage` หรือ Cookie)
-- **POST `/api/auth/register`**
-    - **Payload:** ต้องส่งครบตาม `UserCreate` schema (`first_name`, `last_name`, `email`, `phone`, `username`, `password`)
-    - ⚠️ **ข้อควรระวัง:** หาก Email ซ้ำ ระบบจะทำการ Update ข้อมูลเดิม (เป็น Logic พิเศษของที่นี่) แต่ถ้า Username ซ้ำจะ Error 400
-- **Social Login (Google, Facebook, LINE)**
-    - Frontend ต้อง Redirect ไปที่ `/api/auth/login/<provider>`
-    - หลังจาก Login สำเร็จ Backend จะ Redirect กลับมาที่ Frontend URL พร้อมแนบ `?token=...` มาทาง URL
+    - **Response:** `HttpOnly Cookie (access_token)`
+    - ⚠️ **ข้อควรระวัง:** ใช้ `credentials: "include"` ใน fetch/axios เพื่อส่งและรับ Cookie
+- **Social Login (Google)**
+    - **URL:** `https://possimon.onrender.com/api/auth/google?source=pos` (สำหรับ POS)
+    - **URL:** `https://possimon.onrender.com/api/auth/google?source=web` (สำหรับ Web)
+    - หลังจาก Login สำเร็จ Backend จะ Redirect กลับมาที่ Frontend และส่ง `access_token` ผ่าน HttpOnly Cookie อัตโนมัติ
+- **Token Handling**
+    - ไม่ต้องเก็บ Token ใน `localStorage`
+    - Browser จะส่ง Cookie ไปกับทุกลำดับ Request ไปที่ Backend โดยอัตโนมัติ (ต้องเปิด `withCredentials: true` ใน Axios)
 
 ---
 

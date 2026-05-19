@@ -16,9 +16,17 @@ const getCategory = (name: string) => {
   return 'Red Wine';
 };
 
+const getDisplayImage = (product: Product) => {
+  if (product.images && product.images.length > 0) {
+    return product.images[0].image_url;
+  }
+  return product.image_url;
+};
+
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
   const price = product.selling_price || product.price || 0;
   const isLowStock = product.stock <= 5;
+  const displayImage = getDisplayImage(product);
 
   return (
     <div
@@ -26,9 +34,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
       onClick={() => onAdd(product)}
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-[#0A0A0A]">
-        {product.image_url ? (
+        {displayImage ? (
           <img
-            src={product.image_url}
+            src={displayImage}
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />

@@ -67,8 +67,13 @@ export default function Login() {
   };
 
   const handleSocialLogin = (provider: string) => {
-    // For POS frontend, use the /pos variant to ensure correct redirect
-    window.location.href = `${ABSOLUTE_API_URL}/auth/login/${provider}/pos`;
+    if (provider === "google") {
+      // New simplified Google Login URL
+      window.location.href = `https://possimon.onrender.com/api/auth/google?source=pos`;
+    } else {
+      // For other providers, continue using the previous logic
+      window.location.href = `${ABSOLUTE_API_URL}/auth/login/${provider}/pos`;
+    }
   };
 
   return (
