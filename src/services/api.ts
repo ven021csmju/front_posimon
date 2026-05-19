@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Use relative paths to leverage Vercel/Vite proxying and avoid CORS issues in production.
-const baseURL = '/api';
-export const ABSOLUTE_API_URL = '/api';
+// Use Absolute URL to ensure cookies are sent to the correct domain (Render)
+// Proxying (/api) often fails with cross-domain HttpOnly cookies.
+const baseURL = 'https://possimon.onrender.com/api';
+export const ABSOLUTE_API_URL = 'https://possimon.onrender.com/api';
 
 const api = axios.create({
   baseURL: baseURL,

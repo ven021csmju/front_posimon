@@ -13,7 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { fetchUser, isAuthenticated, user, isLoading } = useAuthStore();
+  const { fetchUser, isAuthenticated, user, isLoading, setToken } = useAuthStore();
 
   useEffect(() => {
     if (isAuthenticated && !isLoading && user) {
@@ -48,14 +48,21 @@ export default function Login() {
         return;
       }
 
-      // After successful login, the HttpOnly cookie is set. 
-      // We fetch the user details to verify the session and update the store.
+      const data = await response.json();
+      console.log("Login success, received data:", { hasToken: !!data.access_token, hasUser: !!data.user });
+      
+      // If the backend returns a token, save it
+      if (data.access_token) {
+        setToken(data.access_token);
+      }
+
+      // After successful login, we fetch the user details to verify the session and update the store.
       await fetchUser();
       
-      const user = useAuthStore.getState().user;
-      if (user) {
-        if (user.role === "admin") navigate("/admin/dashboard");
-        else if (user.role === "manager" || user.role === "cashier") navigate("/pos");
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        if (currentUser.role === "admin") navigate("/admin/dashboard");
+        else if (currentUser.role === "manager" || currentUser.role === "cashier") navigate("/pos");
         else navigate("/");
       }
     } catch (err: any) {
