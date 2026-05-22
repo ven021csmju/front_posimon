@@ -24,6 +24,7 @@ export interface Product {
   price: number;
   selling_price: number;
   stock: number;
+  low_stock_alert?: number;
   image_url?: string;
   images?: ProductImage[];
 }
