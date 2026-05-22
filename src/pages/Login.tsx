@@ -14,7 +14,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { fetchUser, isAuthenticated, user, isLoading, setToken } = useAuthStore();
+  const { fetchUser, isAuthenticated, user, isLoading, setToken, token } = useAuthStore();
   const oauthError = searchParams.get("error");
 
   useEffect(() => {
@@ -25,7 +25,8 @@ export default function Login() {
     }
   }, [isAuthenticated, isLoading, user, navigate]);
 
-  if (isLoading) {
+  // Only wait on API when a token exists (e.g. returning visit)
+  if (isLoading && token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#070606]">
         <div className="text-2xl font-sans font-black text-[#d6b66b] animate-pulse">Checking session...</div>

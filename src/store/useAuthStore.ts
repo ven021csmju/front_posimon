@@ -2,6 +2,18 @@ import { create } from 'zustand';
 import { User } from '../types';
 import api from '../services/api';
 
+function readCachedUser(): User | null {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+const initialToken = localStorage.getItem('token');
+const initialUser = readCachedUser();
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -9,32 +21,25 @@ interface AuthState {
   isLoading: boolean;
   setToken: (token: string | null) => void;
   setUser: (user: User | null) => void;
-  fetchUser: () => Promise<void>;
+  fetchUser: (options?: { silent?: boolean }) => Promise<void>;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
-  isLoading: true, 
+  user: initialUser,
+  token: initialToken,
+  isAuthenticated: !!(initialToken && initialUser),
+  // Only block UI when we must verify a token without cached profile
+  isLoading: !!initialToken && !initialUser,
 
   setToken: (token) => {
     if (token) {
       localStorage.setItem('token', token);
-      // Diagnostic: Log JWT payload if in dev
-      if (import.meta.env.DEV) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('JWT Diagnostic Payload:', payload);
-        } catch (e) {
-          console.error('JWT Diagnostic: Failed to parse token payload', e);
-        }
-      }
     } else {
       localStorage.removeItem('token');
     }
-    set({ token, isAuthenticated: !!token });
+    const user = get().user;
+    set({ token, isAuthenticated: !!(token && user) });
   },
 
   setUser: (user) => {
@@ -47,50 +52,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user, isAuthenticated: !!(token && user) });
   },
 
-  fetchUser: async () => {
-    const currentToken = get().token;
-    console.log('fetchUser: Starting session verification...', { 
-      hasToken: !!currentToken, 
-      tokenPrefix: currentToken ? currentToken.substring(0, 10) + '...' : 'none',
-      url: api.defaults.baseURL 
-    });
-    set({ isLoading: true });
+  fetchUser: async (options) => {
+    const currentToken = get().token ?? localStorage.getItem('token');
+    if (!currentToken) {
+      set({ isLoading: false, isAuthenticated: false });
+      return;
+    }
+
+    if (!options?.silent) {
+      set({ isLoading: true });
+    }
+
     try {
-      // First try /auth/me as per new production guidelines
       let response;
       try {
-        console.log('fetchUser: Attempting GET /auth/me');
         response = await api.get<User>('/auth/me');
-      } catch (err: any) {
-        // Fallback to /users/me if /auth/me is missing (404) or broken (500)
-        if (err.response?.status === 404 || err.response?.status === 500) {
-          console.warn(`fetchUser: /auth/me failed (${err.response?.status}), trying /users/me fallback`);
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 404 || status === 500) {
           response = await api.get<User>('/users/me');
         } else {
-          console.error('fetchUser: /auth/me failed with status:', err.response?.status, err.response?.data);
           throw err;
         }
       }
-      console.log('fetchUser: Success! User data:', {
-        id: response.data.id,
-        username: response.data.username,
-        role: response.data.role
-      });
-      // Save user to state and localStorage
+
       const userData = response.data;
       localStorage.setItem('user', JSON.stringify(userData));
-      set({ user: userData, isAuthenticated: true });
-    } catch (error: any) {
-      console.error('fetchUser: Session verification failed globally:', 
-        error.response?.status, 
-        error.response?.data?.detail || error.message
-      );
-      
-      // We STOP clearing the session automatically on 401/403 during fetchUser.
-      // This prevents the "bounce" back to login if the profile endpoint is broken
-      // but the token might still be valid for other operations (like POS).
-      const isUnauthorized = error.response?.status === 401 || error.response?.status === 403;
-      if (isUnauthorized) {
+      set({ user: userData, token: currentToken, isAuthenticated: true });
+    } catch (error: unknown) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      const isUnauthorized = status === 401 || status === 403;
+      const isNetworkError = !(error as { response?: unknown })?.response;
+
+      if (isUnauthorized || isNetworkError) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         set({ user: null, token: null, isAuthenticated: false });
@@ -108,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    set({ user: null, isAuthenticated: false, token: null });
+    set({ user: null, isAuthenticated: false, token: null, isLoading: false });
     window.location.href = '/login';
   },
 }));

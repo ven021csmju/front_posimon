@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
-import { generatePdf } from "../utils/generatePdf";
 
 export const useReceipt = (orderId: string | number) => {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -11,10 +10,9 @@ export const useReceipt = (orderId: string | number) => {
   });
 
   const handleDownloadPdf = async () => {
-    if (receiptRef.current) {
-      return await generatePdf(receiptRef.current, `receipt-${orderId}.pdf`);
-    }
-    return false;
+    if (!receiptRef.current) return false;
+    const { generatePdf } = await import("../utils/generatePdf");
+    return generatePdf(receiptRef.current, `receipt-${orderId}.pdf`);
   };
 
   return {

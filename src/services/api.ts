@@ -8,6 +8,7 @@ export const ABSOLUTE_API_URL = 'https://possimon.onrender.com/api';
 const api = axios.create({
   baseURL: baseURL,
   withCredentials: true,
+  timeout: 12_000,
   headers: {
     'Content-Type': 'application/json',
   },
