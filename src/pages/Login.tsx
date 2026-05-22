@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { LockKeyhole, UserRound, Wine, Globe, MessageCircle, Users } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import api, { ABSOLUTE_API_URL } from "../services/api";
@@ -13,13 +13,15 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { fetchUser, isAuthenticated, user, isLoading, setToken } = useAuthStore();
+  const oauthError = searchParams.get("error");
 
   useEffect(() => {
     if (isAuthenticated && !isLoading && user) {
-      if (user.role === "admin") navigate("/admin/dashboard");
-      else if (user.role === "manager" || user.role === "cashier") navigate("/pos");
-      else navigate("/");
+      if (user.role === "admin") navigate("/admin/dashboard", { replace: true });
+      else if (user.role === "manager" || user.role === "cashier") navigate("/pos", { replace: true });
+      else navigate("/home", { replace: true });
     }
   }, [isAuthenticated, isLoading, user, navigate]);
 
@@ -71,7 +73,7 @@ export default function Login() {
         const role = data.user.role;
         if (role === "admin") navigate("/admin/dashboard");
         else if (role === "manager" || role === "cashier") navigate("/pos");
-        else navigate("/");
+        else navigate("/home", { replace: true });
         return; 
       }
 
@@ -86,7 +88,7 @@ export default function Login() {
       if (currentUser) {
         if (currentUser.role === "admin") navigate("/admin/dashboard");
         else if (currentUser.role === "manager" || currentUser.role === "cashier") navigate("/pos");
-        else navigate("/");
+        else navigate("/home", { replace: true });
       } else {
         // If fetchUser didn't set the user but login was "successful", something is wrong with the session
         console.error("Login successful but failed to retrieve user profile");
@@ -154,6 +156,12 @@ export default function Login() {
               <h2 className="font-sans text-3xl font-black text-white">Staff Sign In</h2>
               <p className="mt-2 text-sm font-semibold text-zinc-500">Access your cashier terminal</p>
             </div>
+
+            {oauthError && (
+              <div className="mx-8 mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300">
+                Sign-in failed: {oauthError.replace(/_/g, " ")}
+              </div>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-5 p-8">
               <Input label="Username" icon={<UserRound size={18} />} value={username} onChange={(e) => setUsername(e.target.value)} required />

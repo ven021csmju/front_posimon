@@ -43,7 +43,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } else {
       localStorage.removeItem('user');
     }
-    set({ user, isAuthenticated: !!user });
+    const token = get().token;
+    set({ user, isAuthenticated: !!(token && user) });
   },
 
   fetchUser: async () => {
@@ -90,7 +91,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // but the token might still be valid for other operations (like POS).
       const isUnauthorized = error.response?.status === 401 || error.response?.status === 403;
       if (isUnauthorized) {
-        console.warn('fetchUser: 401/403 received. Preserving session to allow optimistic UI usage.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        set({ user: null, token: null, isAuthenticated: false });
       }
     } finally {
       set({ isLoading: false });

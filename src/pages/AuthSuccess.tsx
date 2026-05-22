@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2, Wine } from "lucide-react";
+import { Wine } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import Card from "../components/ui/Card";
 
@@ -11,34 +11,38 @@ export const AuthSuccess = () => {
 
   useEffect(() => {
     const processAuth = async () => {
-      console.log('AuthSuccess: Processing authentication...');
-      
-      // If the backend still sends a token in the URL, grab it for WebSockets
-      const token = searchParams.get("token");
-      if (token) {
-        console.log('AuthSuccess: Found token in URL, updating memory store');
-        setToken(token);
+      const error = searchParams.get("error");
+      if (error) {
+        navigate(`/login?error=${encodeURIComponent(error)}`, { replace: true });
+        return;
       }
 
+      const token = searchParams.get("token");
+      if (!token) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      setToken(token);
+
       try {
-        console.log('AuthSuccess: Verifying session via fetchUser');
         await fetchUser();
-        
         const currentUser = useAuthStore.getState().user;
-        console.log('AuthSuccess: Current user state:', currentUser);
-        
-        if (currentUser) {
-          console.log('AuthSuccess: Login verified, navigating to dashboard/pos');
-          if (currentUser.role === "admin") navigate("/admin/dashboard");
-          else if (currentUser.role === "manager" || currentUser.role === "cashier") navigate("/pos");
-          else navigate("/");
-        } else {
-          console.warn('AuthSuccess: No user data found after verification, redirecting to login');
-          navigate("/login");
+
+        if (!currentUser || !useAuthStore.getState().isAuthenticated) {
+          navigate("/login", { replace: true });
+          return;
         }
-      } catch (error) {
-        console.error("AuthSuccess: Critical error during verification", error);
-        navigate("/login");
+
+        if (currentUser.role === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else if (currentUser.role === "manager" || currentUser.role === "cashier") {
+          navigate("/pos", { replace: true });
+        } else {
+          navigate("/home", { replace: true });
+        }
+      } catch {
+        navigate("/login", { replace: true });
       }
     };
 
@@ -48,12 +52,11 @@ export const AuthSuccess = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#070606] p-5 text-zinc-100">
       <Card className="w-full max-w-md p-8 text-center">
-        <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-3xl bg-[#d6b66b]/10 text-[#d6b66b]">
+        <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-3xl bg-[#d6b66b]/10 text-[#d6b66b] animate-pulse">
           <Wine size={42} />
         </div>
-        <CheckCircle2 className="mx-auto mb-5 text-emerald-300" size={44} />
-        <h1 className="font-sans text-3xl font-black text-white">Authentication Complete</h1>
-        <p className="mt-3 text-sm font-semibold text-zinc-500">Securely connecting to PoSimon Cellar POS.</p>
+        <h1 className="font-sans text-2xl font-black text-white">Signing you in...</h1>
+        <p className="mt-3 text-sm font-semibold text-zinc-500">Please wait a moment.</p>
       </Card>
     </div>
   );
