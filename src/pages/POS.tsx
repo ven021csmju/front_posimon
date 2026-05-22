@@ -25,6 +25,9 @@ import ProductCard from '../components/pos/ProductCard';
 import CartItem from '../components/pos/CartItem';
 import CheckoutModal from '../components/pos/CheckoutModal';
 import ReceiptModal from '../features/receipt/components/ReceiptModal';
+import WineDetailModal from '../features/wine/components/WineDetailModal';
+import { wineService } from '../services/wineService';
+import type { Wine } from '../types/wine';
 
 const categories = ['Red Wine', 'White Wine', 'Sparkling', 'Whiskey', 'Snacks'];
 
@@ -54,6 +57,9 @@ const POS: React.FC = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('cash');
   const [loading, setLoading] = useState(false);
   const [clock, setClock] = useState(new Date());
+  const [wineByProductId, setWineByProductId] = useState<Record<number, Wine>>({});
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const [detailWine, setDetailWine] = useState<Wine | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -67,14 +73,52 @@ const POS: React.FC = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const data = await productService.getProducts();
-      setProducts(data.length ? data : fallbackProducts);
+      const [productsResult, winesResult] = await Promise.allSettled([
+        productService.getProducts(),
+        wineService.getWines(),
+      ]);
+
+      const data =
+        productsResult.status === 'fulfilled' && productsResult.value.length
+          ? productsResult.value
+          : fallbackProducts;
+      setProducts(data);
+
+      if (winesResult.status === 'fulfilled') {
+        const map: Record<number, Wine> = {};
+        winesResult.value.forEach((w) => {
+          if (w.id != null) map[w.id] = w;
+        });
+        setWineByProductId(map);
+      }
     } catch (error) {
       console.error('Failed to fetch products', error);
       setProducts(fallbackProducts);
     } finally {
       setLoading(false);
     }
+  };
+
+  const productAsWine = (product: Product): Wine => {
+    const name = product.name.toLowerCase();
+    let wine_type = 'Red';
+    if (name.includes('white') || name.includes('chardonnay') || name.includes('sancerre')) wine_type = 'White';
+    else if (name.includes('sparkling') || name.includes('prosecco') || name.includes('champagne')) wine_type = 'Sparkling';
+
+    const yearMatch = product.name.match(/\b(19|20)\d{2}\b/);
+    return {
+      ...product,
+      type: 'wine',
+      wine_type,
+      vintage: yearMatch ? Number(yearMatch[0]) : undefined,
+      alcohol: name.includes('whiskey') ? 40 : wine_type === 'Sparkling' ? 12 : 13.5,
+      bottle_size_ml: 750,
+    };
+  };
+
+  const openWineDetail = (product: Product, wine?: Wine | null) => {
+    setDetailProduct(product);
+    setDetailWine(wine ?? (product.id != null ? wineByProductId[product.id] : null) ?? productAsWine(product));
   };
 
   const productCategory = (product: Product) => {
@@ -292,7 +336,13 @@ const POS: React.FC = () => {
             ) : (
               <div className="grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {displayedProducts.map((product) => (
-                  <ProductCard key={product.id || product.sku} product={product} onAdd={addItem} />
+                  <ProductCard
+                    key={product.id || product.sku}
+                    product={product}
+                    wine={product.id != null ? wineByProductId[product.id] : null}
+                    onAdd={addItem}
+                    onViewDetail={openWineDetail}
+                  />
                 ))}
               </div>
             )}
@@ -406,6 +456,19 @@ const POS: React.FC = () => {
         onClose={() => setIsReceiptOpen(false)}
         order={lastOrder}
       />
+
+      {detailProduct && detailWine && (
+        <WineDetailModal
+          isOpen={!!detailProduct}
+          product={detailProduct}
+          wine={detailWine}
+          onClose={() => {
+            setDetailProduct(null);
+            setDetailWine(null);
+          }}
+          onAddToCart={addItem}
+        />
+      )}
     </div>
   );
 };

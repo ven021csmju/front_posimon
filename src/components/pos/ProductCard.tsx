@@ -1,10 +1,13 @@
 import React from 'react';
+import { Info, Wine } from 'lucide-react';
 import { Product } from '../../types';
-import { Wine } from 'lucide-react';
+import type { Wine as WineType } from '../../types/wine';
 
 interface ProductCardProps {
   product: Product;
+  wine?: WineType | null;
   onAdd: (product: Product) => void;
+  onViewDetail?: (product: Product, wine?: WineType | null) => void;
 }
 
 const getCategory = (name: string) => {
@@ -23,17 +26,18 @@ const getDisplayImage = (product: Product) => {
   return product.image_url;
 };
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, wine, onAdd, onViewDetail }) => {
   const price = product.selling_price || product.price || 0;
   const isLowStock = product.stock <= 5;
   const displayImage = getDisplayImage(product);
+  const showSommelier = !!wine || product.name.toLowerCase().includes('wine');
 
   return (
-    <div
-      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-sm bg-transparent transition-all duration-500"
-      onClick={() => onAdd(product)}
-    >
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#0A0A0A]">
+    <div className="group relative flex flex-col overflow-hidden rounded-sm bg-transparent transition-all duration-500">
+      <div
+        className="relative aspect-[3/4] cursor-pointer overflow-hidden bg-[#0A0A0A]"
+        onClick={() => onAdd(product)}
+      >
         {displayImage ? (
           <img
             src={displayImage}
@@ -45,36 +49,60 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
             <Wine size={80} strokeWidth={0.5} />
           </div>
         )}
-        
-        {/* Subtle Overlay on Hover */}
+
         <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/20" />
-        
-        {/* Stock Badge - Minimalist */}
-        <div className={`absolute top-3 right-3 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase ${
-          isLowStock ? 'bg-[#4A0E0E] text-white' : 'bg-black/40 text-white/60'
-        }`}>
+
+        {showSommelier && onViewDetail && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetail(product, wine);
+            }}
+            className="absolute left-3 top-3 grid h-8 w-8 place-items-center rounded-full border border-[#D4AF37]/30 bg-black/50 text-[#D4AF37] opacity-0 backdrop-blur transition-all hover:bg-[#D4AF37]/20 group-hover:opacity-100"
+            aria-label="View wine details"
+          >
+            <Info size={16} />
+          </button>
+        )}
+
+        <div
+          className={`absolute right-3 top-3 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase ${
+            isLowStock ? 'bg-[#4A0E0E] text-white' : 'bg-black/40 text-white/60'
+          }`}
+        >
           {product.stock} IN STOCK
         </div>
+
+        {wine?.vintage && (
+          <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
+            <span className="rounded-sm bg-black/60 px-2 py-0.5 text-[9px] font-black tracking-wider text-[#D4AF37]">
+              {wine.vintage}
+            </span>
+            {wine.alcohol && (
+              <span className="rounded-sm bg-black/60 px-2 py-0.5 text-[9px] font-bold text-white/80">
+                {wine.alcohol}%
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      <div className="mt-4 flex flex-col space-y-1 px-1">
+      <div className="mt-4 flex cursor-pointer flex-col space-y-1 px-1" onClick={() => onAdd(product)}>
         <span className="font-luxury text-[10px] tracking-[0.2em] uppercase text-[#D4AF37]">
-          {getCategory(product.name)}
+          {wine?.wine_type || getCategory(product.name)}
         </span>
-        <h3 className="line-clamp-2 text-sm font-medium tracking-tight text-white/90 group-hover:text-white transition-colors">
+        <h3 className="line-clamp-2 text-sm font-medium tracking-tight text-white/90 transition-colors group-hover:text-white">
           {product.name}
         </h3>
         <div className="flex items-center justify-between pt-1">
-          <span className="text-sm font-semibold text-white">
-            THB {price.toLocaleString()}
-          </span>
-          <span className="text-[10px] text-white/30 tracking-wider uppercase opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-sm font-semibold text-white">THB {price.toLocaleString()}</span>
+          <span className="text-[10px] uppercase tracking-wider text-white/30 opacity-0 transition-opacity group-hover:opacity-100">
             Add to Order
           </span>
         </div>
       </div>
-      
-      {/* Subtle border at bottom that appears on hover */}
+
       <div className="absolute bottom-0 left-0 h-[1px] w-0 bg-[#D4AF37] transition-all duration-500 group-hover:w-full" />
     </div>
   );
