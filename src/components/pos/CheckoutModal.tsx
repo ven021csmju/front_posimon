@@ -4,6 +4,9 @@ import { PaymentMethod } from '../../types';
 import { paymentService } from '../../services/posService';
 import { useAuthStore } from '../../store/useAuthStore';
 
+import { notify } from '../../services/notification.service';
+import { getWebSocketUrl } from '../../utils/wsUrl';
+
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,12 +26,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, total, i
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setMethod(initialMethod);
       setReceived('');
       setShowQR(false);
       setIsSuccess(false);
+      setIsSubmitting(false);
     }
   }, [initialMethod, isOpen]);
 
@@ -44,15 +50,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, total, i
 
     if (!token) return;
 
-    const wsUrl = `wss://possimon.onrender.com/api/ws?token=${token}`;
-    const socket = new WebSocket(wsUrl);
+    const socket = new WebSocket(getWebSocketUrl(token));
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'payment' && data.status === 'paid') {
-          setIsSuccess(true);
-          window.setTimeout(() => onConfirm('promptpay'), 650);
+          notify({
+            type: 'success',
+            title: 'Payment Received',
+            message: `Successfully received PromptPay payment of ฿${total.toLocaleString()}`,
+          });
+          // Success state will be handled by the parent's onConfirm response
+          onConfirm('promptpay');
         }
       } catch (e) {
         console.error('WS parsing error', e);
@@ -64,7 +74,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, total, i
       if (qrCodeUrl) URL.revokeObjectURL(qrCodeUrl);
       setQrCodeUrl(null);
     };
-  }, [showQR, total, onConfirm]);
+  }, [showQR, total, onConfirm, token]); // Fixed dependency: added token
 
   if (!isOpen) return null;
 
@@ -73,14 +83,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, total, i
     setReceived((current) => `${current}${key}`);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (method === 'cash') {
       if (!receivedAmount || receivedAmount < total) {
-        alert('Insufficient received amount');
+        notify({
+          type: 'error',
+          title: 'Insufficient Amount',
+          message: `Received amount (฿${(receivedAmount || 0).toLocaleString()}) is less than total (฿${total.toLocaleString()})`,
+        });
         return;
       }
-      setIsSuccess(true);
-      window.setTimeout(() => onConfirm('cash', receivedAmount, change), 450);
+      setIsSubmitting(true);
+      await onConfirm('cash', receivedAmount, change);
       return;
     }
 
@@ -89,8 +103,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, total, i
       return;
     }
 
-    setIsSuccess(true);
-    window.setTimeout(() => onConfirm(method), 450);
+    setIsSubmitting(true);
+    await onConfirm(method);
   };
 
   const methods = [
@@ -235,9 +249,16 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, total, i
               </button>
               <button
                 onClick={handleConfirm}
-                className="col-span-3 flex h-20 items-center justify-center gap-4 bg-[#4A0E0E] text-[11px] font-bold tracking-[0.4em] text-white transition-all hover:bg-[#5E1212] active:scale-[0.98]"
+                disabled={isSubmitting}
+                className="col-span-3 flex h-20 items-center justify-center gap-4 bg-[#4A0E0E] text-[11px] font-bold tracking-[0.4em] text-white transition-all hover:bg-[#5E1212] active:scale-[0.98] disabled:opacity-50"
               >
-                AUTHORIZE <ArrowRight size={18} />
+                {isSubmitting ? (
+                  <RefreshCw size={18} className="animate-spin" />
+                ) : (
+                  <>
+                    AUTHORIZE <ArrowRight size={18} />
+                  </>
+                )}
               </button>
             </div>
           </div>

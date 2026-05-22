@@ -43,9 +43,9 @@ const AdminDashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [ordersResult, usersResult, productsResult] = await Promise.allSettled([
+      const [ordersResult, employeesResult, productsResult] = await Promise.allSettled([
         api.get('/orders'),
-        api.get('/users'),
+        api.get('/employees'),
         api.get('/products'),
       ]);
 
@@ -53,14 +53,14 @@ const AdminDashboard: React.FC = () => {
       const products = productsResult.status === 'fulfilled' ? productsResult.value.data : [];
       let staffUsers: User[] = [];
 
-      if (usersResult.status === 'fulfilled') {
-        staffUsers = usersResult.value.data.filter((u: User) => u.role !== 'customer');
+      if (employeesResult.status === 'fulfilled') {
+        staffUsers = employeesResult.value.data;
       } else {
         try {
           const meRes = await api.get<User>('/users/me');
           staffUsers = meRes.data.role !== 'customer' ? [meRes.data] : [];
         } catch (fallbackError) {
-          console.warn('Failed to fetch current user for dashboard fallback', fallbackError);
+          console.warn('Failed to fetch employees for dashboard fallback', fallbackError);
         }
       }
 

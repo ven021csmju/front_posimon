@@ -24,6 +24,7 @@ import SearchBar from '../components/pos/SearchBar';
 import ProductCard from '../components/pos/ProductCard';
 import CartItem from '../components/pos/CartItem';
 import CheckoutModal from '../components/pos/CheckoutModal';
+import ReceiptModal from '../features/receipt/components/ReceiptModal';
 
 const categories = ['Red Wine', 'White Wine', 'Sparkling', 'Whiskey', 'Snacks'];
 
@@ -48,6 +49,8 @@ const POS: React.FC = () => {
   const [orderNote, setOrderNote] = useState('');
   const [discount, setDiscount] = useState(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [lastOrder, setLastOrder] = useState<any>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('cash');
   const [loading, setLoading] = useState(false);
   const [clock, setClock] = useState(new Date());
@@ -117,6 +120,12 @@ const POS: React.FC = () => {
     }
   };
 
+  const subtotal = getTotal();
+  const discountAmount = Math.min(Math.max(discount, 0), subtotal);
+  const taxableBase = Math.max(0, subtotal - discountAmount);
+  const tax = taxableBase * 0.07;
+  const total = taxableBase + tax;
+
   const handleCheckout = React.useCallback(async (method: PaymentMethod, received?: number, change?: number) => {
     try {
       if (!user) {
@@ -124,6 +133,7 @@ const POS: React.FC = () => {
         return;
       }
 
+      setLoading(true);
       const orderData = {
         user_id: user.id,
         order_type: 'pos' as const,
@@ -137,34 +147,54 @@ const POS: React.FC = () => {
           if (item.sku) itemObj.sku = item.sku;
           return itemObj;
         }),
-        total_price: parseFloat(String(Math.max(0, getTotal() - discount))),
+        total_price: total,
       };
 
       if (received !== undefined) (orderData as any).received_amount = parseFloat(String(received));
       if (change !== undefined) (orderData as any).change_amount = parseFloat(String(change));
 
-      await orderService.createOrder(orderData);
-      alert('Order completed successfully!');
+      const response = await orderService.createOrder(orderData);
+      
+      // Prepare receipt data
+      const receiptData = {
+        id: response?.id || Date.now(),
+        createdAt: response?.created_at || new Date().toISOString(),
+        cashier: user.first_name || 'Staff',
+        items: items.map(item => ({
+          id: item.id,
+          name: item.name,
+          qty: item.quantity,
+          price: item.selling_price || item.price || 0
+        })),
+        subtotal,
+        tax,
+        total,
+        received_amount: received,
+        change_amount: change
+      };
+
+      setLastOrder(receiptData);
+      setIsCheckoutOpen(false);
+      setIsReceiptOpen(true);
+      
       clearCart();
       setOrderNote('');
       setDiscount(0);
-      setIsCheckoutOpen(false);
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Checkout failed', error);
-      if ((error as any).response?.status === 401) {
-        alert('Session expired. Redirecting to login...');
+      const detail = error.response?.data?.detail || error.response?.data?.message || 'Unknown error';
+      
+      if (error.response?.status === 401) {
+        alert(`Session Error (401): ${detail}\n\nThis usually means the token was rejected by the server. Please check the console for JWT diagnostics.`);
       } else {
-        alert('Failed to complete order: ' + ((error as any).response?.data?.detail || 'Please try again.'));
+        alert('Failed to complete order: ' + detail);
       }
+    } finally {
+      setLoading(false);
     }
-  }, [clearCart, discount, getTotal, items]);
+  }, [clearCart, items, subtotal, tax, total, user, fetchProducts]); // Added fetchProducts to deps
 
-  const subtotal = getTotal();
-  const discountAmount = Math.min(Math.max(discount, 0), subtotal);
-  const taxableBase = Math.max(0, subtotal - discountAmount);
-  const tax = taxableBase * 0.07;
-  const total = taxableBase + tax;
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const openCheckout = (method: PaymentMethod) => {
@@ -369,6 +399,12 @@ const POS: React.FC = () => {
         total={total}
         initialMethod={selectedPaymentMethod}
         onConfirm={handleCheckout}
+      />
+
+      <ReceiptModal
+        isOpen={isReceiptOpen}
+        onClose={() => setIsReceiptOpen(false)}
+        order={lastOrder}
       />
     </div>
   );

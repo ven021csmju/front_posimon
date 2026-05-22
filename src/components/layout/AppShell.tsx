@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3, Boxes, History, LogOut, ShoppingCart, UserRound, Users, Wine } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import Button from '../ui/Button';
+import NotificationDropdown from './NotificationDropdown';
 
 interface AppShellProps {
   title: string;
@@ -94,7 +95,10 @@ export const AppShell: React.FC<AppShellProps> = ({ title, subtitle, children, a
                 {subtitle && <p className="mt-1 text-sm font-semibold text-zinc-500">{subtitle}</p>}
               </div>
             </div>
-            <div className="flex items-center gap-3">{actions}</div>
+            <div className="flex items-center gap-3">
+              <NotificationDropdown />
+              {actions}
+            </div>
           </div>
         </header>
         {children}

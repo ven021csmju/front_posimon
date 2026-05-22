@@ -7,6 +7,7 @@ import Input from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
 import { productService } from "../services/posService";
 import { Product } from "../types";
+import { notify } from "../services/notification.service";
 
 export default function Inventory() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -39,9 +40,19 @@ export default function Inventory() {
     setLoading(true);
     try {
       await productService.uploadProductImage(selectedProduct.id, file);
+      notify({
+        type: 'success',
+        title: 'Image Uploaded',
+        message: `Successfully uploaded new image for ${selectedProduct.name}`,
+      });
       await fetchProducts();
     } catch (error) {
       console.error("Upload failed", error);
+      notify({
+        type: 'error',
+        title: 'Upload Failed',
+        message: 'Could not upload product image. Please try again.',
+      });
     } finally {
       setLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -69,9 +80,20 @@ export default function Inventory() {
     setLoading(true);
     try {
       await productService.refillStock(productId, Number(amount));
+      const product = products.find(p => p.id === productId);
+      notify({
+        type: 'success',
+        title: 'Stock Refilled',
+        message: `Added ${amount} units to ${product?.name || 'product'}`,
+      });
       await fetchProducts();
     } catch (error) {
       console.error("Refill failed", error);
+      notify({
+        type: 'error',
+        title: 'Refill Failed',
+        message: 'Could not update stock level. Please try again.',
+      });
     } finally {
       setLoading(false);
     }

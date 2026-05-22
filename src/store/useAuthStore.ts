@@ -14,7 +14,7 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
+  user: JSON.parse(localStorage.getItem('user') || 'null'),
   token: localStorage.getItem('token'),
   isAuthenticated: !!localStorage.getItem('token'),
   isLoading: true, 
@@ -22,6 +22,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setToken: (token) => {
     if (token) {
       localStorage.setItem('token', token);
+      // Diagnostic: Log JWT payload if in dev
+      if (import.meta.env.DEV) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('JWT Diagnostic Payload:', payload);
+        } catch (e) {
+          console.error('JWT Diagnostic: Failed to parse token payload', e);
+        }
+      }
     } else {
       localStorage.removeItem('token');
     }
@@ -29,6 +38,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setUser: (user) => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
     set({ user, isAuthenticated: !!user });
   },
 
@@ -47,26 +61,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.log('fetchUser: Attempting GET /auth/me');
         response = await api.get<User>('/auth/me');
       } catch (err: any) {
-        if (err.response?.status === 404) {
-          console.warn('fetchUser: /auth/me not found (404), trying /users/me fallback');
+        // Fallback to /users/me if /auth/me is missing (404) or broken (500)
+        if (err.response?.status === 404 || err.response?.status === 500) {
+          console.warn(`fetchUser: /auth/me failed (${err.response?.status}), trying /users/me fallback`);
           response = await api.get<User>('/users/me');
         } else {
           console.error('fetchUser: /auth/me failed with status:', err.response?.status, err.response?.data);
           throw err;
         }
       }
-      console.log('fetchUser: Success! User data:', response.data);
-      set({ user: response.data, isAuthenticated: true });
+      console.log('fetchUser: Success! User data:', {
+        id: response.data.id,
+        username: response.data.username,
+        role: response.data.role
+      });
+      // Save user to state and localStorage
+      const userData = response.data;
+      localStorage.setItem('user', JSON.stringify(userData));
+      set({ user: userData, isAuthenticated: true });
     } catch (error: any) {
       console.error('fetchUser: Session verification failed globally:', 
         error.response?.status, 
         error.response?.data?.detail || error.message
       );
-      // Only clear auth if it's a definitive 401 or 403
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.warn('fetchUser: Clearing session due to 401/403');
-        set({ user: null, isAuthenticated: false, token: null });
-        localStorage.removeItem('token');
+      
+      // We STOP clearing the session automatically on 401/403 during fetchUser.
+      // This prevents the "bounce" back to login if the profile endpoint is broken
+      // but the token might still be valid for other operations (like POS).
+      const isUnauthorized = error.response?.status === 401 || error.response?.status === 403;
+      if (isUnauthorized) {
+        console.warn('fetchUser: 401/403 received. Preserving session to allow optimistic UI usage.');
       }
     } finally {
       set({ isLoading: false });
@@ -80,6 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Logout failed:', err);
     }
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     set({ user: null, isAuthenticated: false, token: null });
     window.location.href = '/login';
   },

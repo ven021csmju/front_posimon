@@ -35,39 +35,67 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${api.defaults.baseURL}/auth/login/pos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ username, password }),
+      // Use the 'api' (axios) instance instead of native 'fetch' for consistency
+      const response = await api.post("/auth/login/pos", {
+        username,
+        password,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        alert("Login failed: " + (errorData?.detail || response.statusText));
-        return;
+      const data = response.data;
+      if (import.meta.env.DEV) {
+        console.log("Login raw response keys:", Object.keys(data));
       }
-
-      const data = await response.json();
-      console.log("Login success, received data:", { hasToken: !!data.access_token, hasUser: !!data.user });
+      
+      console.log("Login success, received data:", { 
+        hasToken: !!data.access_token, 
+        hasUser: !!data.user,
+        userKeys: data.user ? Object.keys(data.user) : [],
+        role: data.user?.role 
+      });
       
       // If the backend returns a token, save it
       if (data.access_token) {
         setToken(data.access_token);
       }
 
-      // After successful login, we fetch the user details to verify the session and update the store.
-      await fetchUser();
+      // If the login response ALREADY contains the user, populate the store and navigate immediately
+      if (data.user) {
+        console.log("Login: Using user data from login response, navigating...");
+        const authStore = useAuthStore.getState();
+        authStore.setUser(data.user); // Persists to localStorage
+        
+        // Final check to ensure state is set
+        const updatedUser = useAuthStore.getState().user;
+        console.log("Login: Verified user in store:", updatedUser);
+
+        const role = data.user.role;
+        if (role === "admin") navigate("/admin/dashboard");
+        else if (role === "manager" || role === "cashier") navigate("/pos");
+        else navigate("/");
+        return; 
+      }
+
+      // Fallback for older backend versions that don't return the user object
+      try {
+        await fetchUser();
+      } catch (verifyErr) {
+        console.error("Session verification failed after login:", verifyErr);
+      }
       
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
         if (currentUser.role === "admin") navigate("/admin/dashboard");
         else if (currentUser.role === "manager" || currentUser.role === "cashier") navigate("/pos");
         else navigate("/");
+      } else {
+        // If fetchUser didn't set the user but login was "successful", something is wrong with the session
+        console.error("Login successful but failed to retrieve user profile");
+        alert("Session verification failed. Please try again.");
       }
     } catch (err: any) {
       console.error("Login request error:", err);
-      alert("Login failed: " + (err.response?.data?.detail || err.message || "Unable to connect to server"));
+      const errorMsg = err.response?.data?.detail || err.message || "Unable to connect to server";
+      alert("Login failed: " + errorMsg);
     } finally {
       setLoading(false);
     }
